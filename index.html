@@ -744,6 +744,7 @@
         setTimeout(() => {
           this.overlay.classList.remove('show');
           this.startDemo();
+          this.playDemo();
         }, 3000);
       }
 
@@ -853,7 +854,7 @@
       stepComplete() {
         this.stepIndicator.classList.remove('show');
         this.cursor.classList.remove('show');
-        
+
         // 最後のデモ結果を見せるため4秒待ってから完了メッセージを表示
         setTimeout(() => {
           this.showCompletionMessage();
