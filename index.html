@@ -652,7 +652,7 @@
     <!-- Demo Controls -->
     <div class="demo-controls">
       <button class="demo-btn" id="prevBtn">⏮</button>
-      <button class="demo-btn play" id="playBtn">▶</button>
+      <button class="demo-btn play" id="playBtn">⏸</button>
       <button class="demo-btn" id="nextBtn">⏭</button>
       <button class="demo-btn" id="restartBtn">🔄</button>
     </div>
@@ -963,8 +963,6 @@
 
       playDemo() {
         this.isPlaying = true;
-        this.playBtn.textContent = '⏸';
-
         this.stepInterval = setInterval(() => {
           this.nextStep();
           if (this.currentStep >= 6) {
@@ -975,7 +973,6 @@
 
       pauseDemo() {
         this.isPlaying = false;
-        this.playBtn.textContent = '▶';
         if (this.stepInterval) {
           clearInterval(this.stepInterval);
           this.stepInterval = null;
