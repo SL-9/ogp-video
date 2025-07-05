@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OGP Preview Tool - 実際のサイト実演動画</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #1a1a1a;
+      color: white;
+      overflow: hidden;
+    }
+
+    .screen-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      padding: 0;
+      overflow: hidden;
+      background: #1a1a1a;
+    }
+
+    .screen {
+      width: 100%;
+      height: 100vh;
+      background: #fff;
+      overflow: hidden;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .browser-chrome {
+      height: 60px;
+      background: #f1f3f4;
+      border-bottom: 1px solid #dadce0;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+    }
+
+    .browser-controls {
+      display: flex;
+      gap: 8px;
+      margin-right: 20px;
+    }
+
+    .browser-btn {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+    }
+
+    .browser-btn.close {
+      background: #ff5f57;
+    }
+
+    .browser-btn.minimize {
+      background: #ffbd2e;
+    }
+
+    .browser-btn.maximize {
+      background: #28ca42;
+    }
+
+    .address-bar {
+      flex: 1;
+      height: 36px;
+      background: white;
+      border: 1px solid #dadce0;
+      border-radius: 18px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+      color: #5f6368;
+      position: relative;
+    }
+
+    .address-text {
+      opacity: 0;
+      animation: typeIn 2s ease-out 1s forwards;
+    }
+
+    @keyframes typeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .main-content {
+      height: calc(100% - 60px);
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: clamp(20px, 5vw, 40px);
+      position: relative;
+      overflow-y: auto;
+    }
+
+    .app-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .app-title {
+      font-size: 3rem;
+      font-weight: 700;
+      color: #1976d2;
+      margin-bottom: 12px;
+      opacity: 0;
+      animation: fadeInUp 1s ease-out 2s forwards;
+    }
+
+    .app-subtitle {
+      font-size: 1.2rem;
+      color: #666;
+      opacity: 0;
+      animation: fadeInUp 1s ease-out 2.5s forwards;
+    }
+
+    .input-container {
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 30px;
+      position: relative;
+    }
+
+    .url-input-wrapper {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      opacity: 0;
+      animation: fadeInUp 1s ease-out 3s forwards;
+    }
+
+    .url-input {
+      flex: 1;
+      height: 56px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 0 16px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+
+    .url-input:focus {
+      border-color: #1976d2;
+      box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+    }
+
+    .preview-button {
+      height: 56px;
+      padding: 0 24px;
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      min-width: 120px;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 4px 6px rgba(25, 118, 210, 0.3);
+    }
+
+    .preview-button:hover {
+      background: #1565c0;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(25, 118, 210, 0.4);
+    }
+
+    .preview-button.clicked {
+      transform: translateY(4px);
+      box-shadow: 0 1px 2px rgba(25, 118, 210, 0.2);
+    }
+
+    .loading-state {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      color: #666;
+      margin-top: 20px;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #e0e0e0;
+      border-top: 2px solid #1976d2;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .result-container {
+      width: 100%;
+      max-width: 600px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.5s ease;
+    }
+
+    .result-container.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .ogp-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .ogp-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .ogp-image {
+      width: 100%;
+      height: 200px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ogp-image::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% {
+        left: -100%;
+      }
+
+      100% {
+        left: 100%;
+      }
+    }
+
+    .ogp-image-placeholder {
+      font-size: 48px;
+      color: white;
+      opacity: 0.8;
+    }
+
+    .ogp-content {
+      padding: 24px;
+    }
+
+    .ogp-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1976d2;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    .ogp-description {
+      font-size: 14px;
+      color: #666;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .ogp-url {
+      font-size: 12px;
+      color: #999;
+      text-decoration: none;
+    }
+
+    .ogp-url:hover {
+      color: #1976d2;
+    }
+
+    .demo-controls {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      z-index: 100;
+    }
+
+    .demo-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .demo-btn:hover {
+      background: rgba(0, 0, 0, 0.9);
+      transform: scale(1.1);
+    }
+
+    .demo-btn.play {
+      background: #4caf50;
+    }
+
+    .demo-btn.play:hover {
+      background: #45a049;
+    }
+
+    .step-indicator {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: all 0.5s ease;
+    }
+
+    .step-indicator.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .cursor {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>') no-repeat center;
+      background-size: contain;
+      z-index: 1000;
+      pointer-events: none;
+      opacity: 0;
+      transition: all 0.3s ease;
+      transform-origin: center;
+      margin-left: -12px;
+      margin-top: -12px;
+    }
+
+    .cursor.show {
+      opacity: 1;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .typing-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: #1976d2;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      50% {
+        opacity: 1;
+      }
+
+      51%,
+      100% {
+        opacity: 0;
+      }
+    }
+
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .overlay-content {
+      text-align: center;
+      color: white;
+    }
+
+    .overlay h2 {
+      font-size: 2rem;
+      margin-bottom: 16px;
+    }
+
+    .overlay p {
+      font-size: 1.2rem;
+      opacity: 0.8;
+    }
+
+    @media (max-width: 768px) {
+      .screen {
+        height: 95vh;
+        max-height: none;
+        border-radius: 0;
+      }
+
+      .demo-controls {
+        bottom: 10px;
+      }
+
+      .demo-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+      }
+
+      .app-title {
+        font-size: 2rem;
+      }
+
+      .app-subtitle {
+        font-size: 1rem;
+      }
+
+      .url-input-wrapper {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .url-input {
+        height: 48px;
+      }
+
+      .preview-button {
+        width: 100%;
+        height: 48px;
+      }
+
+      .ogp-card {
+        margin: 0 10px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .screen-container {
+        padding: 0;
+      }
+
+      .screen {
+        border-radius: 0;
+        height: 100vh;
+      }
+
+      .browser-chrome {
+        height: 50px;
+      }
+
+      .main-content {
+        height: calc(100% - 50px);
+        padding: 20px;
+      }
+
+      .app-title {
+        font-size: 1.8rem;
+        margin-bottom: 8px;
+      }
+
+      .app-subtitle {
+        font-size: 0.9rem;
+      }
+
+      .demo-controls {
+        gap: 8px;
+        bottom: 5px;
+      }
+
+      .demo-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+      }
+
+      .step-indicator {
+        font-size: 12px;
+        padding: 6px 12px;
+        top: 10px;
+        right: 10px;
+      }
+
+      .ogp-image {
+        height: 150px;
+      }
+
+      .ogp-content {
+        padding: 16px;
+      }
+    }
+
+    @media (min-width: 769px) {
+      .screen {
+        width: min(90vw, 1200px);
+        height: min(90vh, 800px);
+      }
+    }
+
+    @media (orientation: landscape) and (max-height: 600px) {
+      .screen {
+        height: 95vh;
+      }
+
+      .app-header {
+        margin-bottom: 20px;
+      }
+
+      .main-content {
+        padding: 20px;
+      }
+
+      .ogp-image {
+        height: 120px;
+      }
+    }
+
+    @media (max-width: 1920px) {
+      .screen {
+        width: min(100%, 1200px);
+        height: min(100vh, 800px);
+        border-radius: 8px;
+        box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+      }
+
+      .screen-container {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="screen-container">
+    <div class="screen">
+      <!-- Browser Chrome -->
+      <div class="browser-chrome">
+        <div class="browser-controls">
+          <button class="browser-btn close"></button>
+          <button class="browser-btn minimize"></button>
+          <button class="browser-btn maximize"></button>
+        </div>
+        <div class="address-bar">
+          <span class="address-text">https://ogp-oeld.vercel.app/</span>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="main-content">
+        <div class="app-header">
+          <h1 class="app-title">OGP Preview Tool</h1>
+          <p class="app-subtitle">WebサイトのOGP情報を瞬時にプレビュー</p>
+        </div>
+
+        <div class="input-container">
+          <div class="url-input-wrapper">
+            <input type="text" class="url-input" id="urlInput" placeholder="URLを入力してください（例：https://github.com）">
+            <button class="preview-button" id="previewBtn">Preview</button>
+          </div>
+          <div class="loading-state" id="loadingState">
+            <div class="spinner"></div>
+            <span>OGP情報を取得中...</span>
+          </div>
+        </div>
+
+        <div class="result-container" id="resultContainer">
+          <div class="ogp-card">
+            <div class="ogp-image">
+              <div class="ogp-image-placeholder">🌐</div>
+            </div>
+            <div class="ogp-content">
+              <h3 class="ogp-title" id="ogpTitle">サイトタイトル</h3>
+              <p class="ogp-description" id="ogpDescription">サイトの説明文がここに表示されます。</p>
+              <a class="ogp-url" id="ogpUrl" href="#">example.com</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step Indicator -->
+      <div class="step-indicator" id="stepIndicator">Step 1: サイト読み込み中</div>
+    </div>
+
+    <!-- Demo Controls -->
+    <div class="demo-controls">
+      <button class="demo-btn" id="prevBtn">⏮</button>
+      <button class="demo-btn play" id="playBtn">▶</button>
+      <button class="demo-btn" id="nextBtn">⏭</button>
+      <button class="demo-btn" id="restartBtn">🔄</button>
+    </div>
+
+    <!-- Animated Cursor -->
+    <div class="cursor" id="cursor"></div>
+
+    <!-- Overlay -->
+    <div class="overlay" id="overlay">
+      <div class="overlay-content">
+        <h2>OGP Preview Tool 実演動画</h2>
+        <p>実際のサイトでの操作方法をご紹介します</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    class OGPDemoVideo {
+      constructor() {
+        this.currentStep = 0;
+        this.isPlaying = false;
+        this.stepInterval = null;
+        this.demoSites = [
+          {
+            url: 'https://github.com',
+            title: 'GitHub',
+            description: 'GitHubは、ソフトウェア開発プラットフォームです。コード管理、コラボレーション、プロジェクト管理を一つの場所で行えます。',
+            icon: '🐙'
+          },
+          {
+            url: 'https://youtube.com',
+            title: 'YouTube',
+            description: 'YouTubeは世界最大の動画共有プラットフォームです。数十億時間の動画が毎日視聴されています。',
+            icon: '📺'
+          },
+          {
+            url: 'https://twitter.com',
+            title: 'Twitter',
+            description: 'Twitterは、リアルタイムの情報共有とコミュニケーションのためのソーシャルネットワークサービスです。',
+            icon: '🐦'
+          }
+        ];
+        this.currentSiteIndex = 0;
+
+        this.initElements();
+        this.bindEvents();
+        this.showIntro();
+      }
+
+      initElements() {
+        this.urlInput = document.getElementById('urlInput');
+        this.previewBtn = document.getElementById('previewBtn');
+        this.loadingState = document.getElementById('loadingState');
+        this.resultContainer = document.getElementById('resultContainer');
+        this.stepIndicator = document.getElementById('stepIndicator');
+        this.cursor = document.getElementById('cursor');
+        this.overlay = document.getElementById('overlay');
+
+        this.ogpTitle = document.getElementById('ogpTitle');
+        this.ogpDescription = document.getElementById('ogpDescription');
+        this.ogpUrl = document.getElementById('ogpUrl');
+
+        this.prevBtn = document.getElementById('prevBtn');
+        this.playBtn = document.getElementById('playBtn');
+        this.nextBtn = document.getElementById('nextBtn');
+        this.restartBtn = document.getElementById('restartBtn');
+      }
+
+      bindEvents() {
+        this.prevBtn.addEventListener('click', () => this.prevStep());
+        this.playBtn.addEventListener('click', () => this.togglePlay());
+        this.nextBtn.addEventListener('click', () => this.nextStep());
+        this.restartBtn.addEventListener('click', () => this.restart());
+
+        // キーボード操作
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowLeft') this.prevStep();
+          if (e.key === 'ArrowRight') this.nextStep();
+          if (e.key === ' ') {
+            e.preventDefault();
+            this.togglePlay();
+          }
+          if (e.key === 'r' || e.key === 'R') this.restart();
+        });
+      }
+
+      showIntro() {
+        this.overlay.classList.add('show');
+        setTimeout(() => {
+          this.overlay.classList.remove('show');
+          this.startDemo();
+        }, 3000);
+      }
+
+      startDemo() {
+        this.executeStep(0);
+      }
+
+      executeStep(stepIndex) {
+        this.currentStep = stepIndex;
+
+        // 前のステップインジケーターを非表示
+        this.stepIndicator.classList.remove('show');
+
+        // 少し待ってから新しいステップを開始
+        setTimeout(() => {
+          switch (stepIndex) {
+            case 0:
+              this.stepSiteLoaded();
+              break;
+            case 1:
+              this.stepInputURL();
+              break;
+            case 2:
+              this.stepClickPreview();
+              break;
+            case 3:
+              this.stepShowLoading();
+              break;
+            case 4:
+              this.stepShowResult();
+              break;
+            case 5:
+              this.stepDemoOtherSites();
+              break;
+            default:
+              this.stepComplete();
+          }
+          // 新しいステップインジケーターを表示
+          this.stepIndicator.classList.add('show');
+        }, 500);
+      }
+
+      stepSiteLoaded() {
+        this.stepIndicator.textContent = 'Step 1: URLを入力してください';
+        this.cursor.classList.remove('show');
+      }
+
+      stepInputURL() {
+        this.stepIndicator.textContent = 'Step 2: 入力中...';
+        this.cursor.classList.remove('show');
+
+        setTimeout(() => {
+          this.typeText(this.urlInput, this.demoSites[this.currentSiteIndex].url);
+        }, 1000);
+      }
+
+      stepClickPreview() {
+        this.stepIndicator.textContent = 'Step 3: プレビューボタンをクリック';
+
+        // ボタンクリックアニメーション
+        this.previewBtn.style.transform = 'translateY(4px)';
+        this.previewBtn.style.boxShadow = '0 1px 2px rgba(25, 118, 210, 0.2)';
+
+        // 500ms後に元に戻す
+        setTimeout(() => {
+          this.previewBtn.style.transform = '';
+          this.previewBtn.style.boxShadow = '';
+
+          // ローディング表示に移行
+          setTimeout(() => {
+            this.cursor.classList.remove('show');
+            this.executeStep(3);
+          }, 500);
+        }, 500);
+      }
+
+      stepShowLoading() {
+        this.stepIndicator.textContent = 'Step 4: OGP情報を取得中...';
+        this.loadingState.style.display = 'flex';
+        this.cursor.classList.remove('show');
+      }
+
+      stepShowResult() {
+        this.stepIndicator.textContent = 'Step 5: プレビュー完了！';
+        this.loadingState.style.display = 'none';
+
+        // 結果表示のアニメーション
+        setTimeout(() => {
+          this.showOGPResult();
+
+          // 結果を3秒間表示
+          setTimeout(() => {
+            this.executeStep(5);
+          }, 3000);
+        }, 1000);
+      }
+
+      stepDemoOtherSites() {
+        this.stepIndicator.textContent = 'Step 6: 他のサイトも試してみましょう';
+
+        // 1秒後にデモ開始
+        setTimeout(() => {
+          this.demoMultipleSites();
+        }, 1000);
+      }
+
+      stepComplete() {
+        this.stepIndicator.classList.remove('show');
+        this.cursor.classList.remove('show');
+        
+        // 最後のデモ結果を見せるため4秒待ってから完了メッセージを表示
+        setTimeout(() => {
+          this.showCompletionMessage();
+        }, 4000);
+      }
+
+      typeText(element, text) {
+        element.value = '';
+        element.focus();
+
+        let i = 0;
+        const typeInterval = setInterval(() => {
+          if (i < text.length) {
+            element.value += text[i];
+            i++;
+          } else {
+            clearInterval(typeInterval);
+            element.blur();
+          }
+        }, 80);
+      }
+
+      clickButton(button) {
+        button.classList.add('clicked');
+        setTimeout(() => {
+          button.classList.remove('clicked');
+        }, 150);
+      }
+
+      showOGPResult() {
+        const site = this.demoSites[this.currentSiteIndex];
+
+        this.ogpTitle.textContent = site.title;
+        this.ogpDescription.textContent = site.description;
+        this.ogpUrl.textContent = site.url.replace('https://', '');
+        this.ogpUrl.href = site.url;
+
+        // アイコンを更新
+        const placeholder = document.querySelector('.ogp-image-placeholder');
+        placeholder.textContent = site.icon;
+
+        this.resultContainer.classList.add('show');
+      }
+
+      demoMultipleSites() {
+        let demoCount = 0;
+        const maxDemos = 3;
+        const demoInterval = 4000; // 各デモの間隔
+
+        const runDemo = () => {
+          if (demoCount < maxDemos) {
+            this.currentSiteIndex = (this.currentSiteIndex + 1) % this.demoSites.length;
+            this.typeText(this.urlInput, this.demoSites[this.currentSiteIndex].url);
+
+            setTimeout(() => {
+              this.showOGPResult();
+              demoCount++;
+              setTimeout(runDemo, demoInterval);
+            }, 2000);
+          } else {
+            // すべてのデモが終了したら2秒後に完了ステップへ
+            setTimeout(() => {
+              this.executeStep(6);
+            }, 2000);
+          }
+        };
+
+        runDemo();
+      }
+
+      showCompletionMessage() {
+        this.overlay.innerHTML = `
+          <div class="overlay-content">
+            <h2>✅ デモ完了！</h2>
+            <p>OGP Preview Toolの使い方をご確認いただきました</p>
+            <p style="margin-top: 20px; font-size: 1rem;">
+              <strong>主な機能:</strong><br>
+              • URLを入力してOGP情報を取得<br>
+              • SNSでのシェア前にプレビュー確認<br>
+              • 様々なサイトに対応
+            </p>
+          </div>
+        `;
+        this.overlay.classList.add('show');
+      }
+
+      nextStep() {
+        if (this.currentStep < 6) {
+          this.executeStep(this.currentStep + 1);
+        }
+      }
+
+      prevStep() {
+        if (this.currentStep > 0) {
+          this.executeStep(this.currentStep - 1);
+        }
+      }
+
+      togglePlay() {
+        if (this.isPlaying) {
+          this.pauseDemo();
+        } else {
+          this.playDemo();
+        }
+      }
+
+      playDemo() {
+        this.isPlaying = true;
+        this.playBtn.textContent = '⏸';
+
+        this.stepInterval = setInterval(() => {
+          this.nextStep();
+          if (this.currentStep >= 6) {
+            this.pauseDemo();
+          }
+        }, 5000);
+      }
+
+      pauseDemo() {
+        this.isPlaying = false;
+        this.playBtn.textContent = '▶';
+        if (this.stepInterval) {
+          clearInterval(this.stepInterval);
+          this.stepInterval = null;
+        }
+      }
+
+      restart() {
+        this.pauseDemo();
+        this.currentStep = 0;
+        this.currentSiteIndex = 0;
+
+        // リセット
+        this.urlInput.value = '';
+        this.loadingState.style.display = 'none';
+        this.resultContainer.classList.remove('show');
+        this.cursor.classList.remove('show');
+        this.overlay.classList.remove('show');
+
+        // 再開
+        setTimeout(() => {
+          this.executeStep(0);
+        }, 500);
+      }
+    }
+
+    // 初期化
+    document.addEventListener('DOMContentLoaded', () => {
+      new OGPDemoVideo();
+    });
+  </script>
+</body>
+
+</html>
